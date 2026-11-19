@@ -1,4 +1,4 @@
-# Didar
+# Online Meeting App
 
 Free and private online meetings, on a server you control.
 
@@ -17,27 +17,21 @@ People join in the browser: talk, use a camera, share a screen, draw, open files
 
 The installer adds Nginx, MariaDB, PHP, Coturn, LiveKit, certbot, and ffmpeg. Other Nginx sites stay. The firewall only gains rules.
 
-## Direct or NAT
-
-`direct`: this machine's network card already has the public IP. Point the A record at that address.
-
-`nat`: a router holds the public IP and this machine has a private address. Point the A record at the router's public IP, and forward every port in the Ports section to this machine. LiveKit is pinned to that public IP. Coturn announces the public IP and relays from the private card. A phone on the same Wi-Fi as the server often cannot open the public name, so test the call from mobile data. Add `--public-ip` only when the domain has no A record yet.
-
 ## Install
 
-On the server itself, when its network card is the public IP:
+Install on a server that has a public IP.
 
 ```bash
 git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-Behind a router:
+Install on a server behind NAT. Forward the ports to this machine.
 
 ```bash
 git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-If that domain has no A record yet, add `--public-ip 203.0.113.10` to the nat command.
+If the domain has no A record yet, add `--public-ip` to the NAT command.
 
 The first line it prints must be `Didar 1.1.1 installer 20261120-clone`. If that line is missing, delete the `didar` folder and run the command again.
 

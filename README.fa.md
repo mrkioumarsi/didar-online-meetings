@@ -1,4 +1,4 @@
-# دیدار
+# اپ جلسهٔ آنلاین
 
 جلسهٔ آنلاین رایگان و اختصاصی، روی سرور خودتان.
 
@@ -17,27 +17,21 @@
 
 نصب‌کننده Nginx، MariaDB، PHP، Coturn، LiveKit، certbot و ffmpeg را می‌گذارد. سایت‌های دیگر Nginx می‌مانند. فایروال فقط قانون جدید می‌گیرد.
 
-## مستقیم یا پشت NAT
-
-`direct`: خود کارت شبکهٔ این ماشین IP عمومی دارد. رکورد A را به همان آدرس بدهید.
-
-`nat`: روتر IP عمومی را دارد و این ماشین یک آدرس خصوصی دارد. رکورد A را به IP عمومی روتر بدهید و همهٔ پورت‌های بخش پورت‌ها را به این ماشین فوروارد کنید. LiveKit به همان IP عمومی سنجاق می‌شود. Coturn آدرس عمومی را اعلام می‌کند و از کارت خصوصی رله می‌کند. گوشی روی همان وای‌فای سرور اغلب نام عمومی را باز نمی‌کند، پس تماس را از اینترنت موبایل امتحان کنید. `--public-ip` فقط وقتی لازم است که دامنه هنوز رکورد A نداشته باشد.
-
 ## نصب
 
-روی خود سرور، وقتی کارت شبکه همان IP عمومی است:
+نصب روی سروری که IP عمومی دارد.
 
 ```bash
 git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-پشت روتر:
+نصب روی سروری که پشت NAT است. پورت‌ها را به این ماشین فوروارد کنید.
 
 ```bash
 git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-اگر دامنه هنوز رکورد A ندارد، `--public-ip 203.0.113.10` را به دستور nat اضافه کنید.
+اگر دامنه هنوز رکورد A ندارد، `--public-ip` را به دستور NAT اضافه کنید.
 
 اولین خطی که چاپ می‌کند باید `Didar 1.1.1 installer 20261120-clone` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
 

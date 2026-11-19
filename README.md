@@ -8,24 +8,15 @@ People join in the browser: talk, use a camera, share a screen, draw, open files
 
 ## Install
 
-Ubuntu, as root. The installer asks for the network mode, the domain, and the certificate email.
+Ubuntu, as root. One command clones release v1.1.1 and installs it. If `git` is missing, run `sudo apt-get install -y git` first.
 
 ```bash
-wget -qO didar.tar.gz "https://github.com/mrkioumarsi/didar-meeting/archive/refs/tags/v1.1.1.tar.gz?$(date +%s)"
-tar -xzf didar.tar.gz
-cd didar-1.1.1
-sudo bash install/didar-install.sh
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meeting-linux-server.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-The first line it prints must be `Didar 1.1.1 installer 20261113-setup`. If that line is missing, delete `didar.tar.gz` and `didar-1.1.1`, then download again.
+The first line it prints must be `Didar 1.1.1 installer 20261120-clone`. If that line is missing, delete the `didar` folder and run the command again.
 
-Choose `direct` when this machine's network card already has the public IP. Choose `nat` when a router forwards the ports to this machine. To skip the questions:
-
-```bash
-sudo bash install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
-```
-
-Behind NAT, change that to `--net nat`. Add `--public-ip` only when the domain has no A record yet.
+`--net direct` means this machine's network card already has the public IP. Behind a router, use `--net nat` in that same command. Add `--public-ip` only when the domain has no A record yet.
 
 `--confirm-wipe` erases every MariaDB database on this machine. Other Nginx sites stay. The firewall only gains rules. Without it, the script waits until you type `WIPE-DATABASES`. The admin password needs 8 characters. Leave it out and one is created for you.
 

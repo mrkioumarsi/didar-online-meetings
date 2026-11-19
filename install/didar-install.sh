@@ -181,7 +181,7 @@ APPDIR="$(realpath "$APPDIR")"
 [ -f "$APPDIR/install/didar-ssl.sh" ] || fail "didar-ssl.sh not found"
 ORIG="$APPDIR"
 
-echo "Didar 1.1.1 installer 20261113-setup"
+echo "Didar 1.1.1 installer 20261120-clone"
 
 [[ "$APPDIR" != *" "* ]] || fail "Application path cannot contain spaces"
 
@@ -745,6 +745,7 @@ if ! runuser -u www-data -- test -r "$APPDIR/index.php"; then
 
     install -d "$TARGET"
     cp -a "$APPDIR"/. "$TARGET"/
+    rm -rf "$TARGET/.git"
     APPDIR="$TARGET"
 fi
 

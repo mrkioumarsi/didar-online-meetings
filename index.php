@@ -1,7 +1,7 @@
 <?php
 require 'config.php';
 if(!file_exists(__DIR__.'/storage/installed.lock')){
- if(is_file(__DIR__.'/install.php')){header('Location: install.php');exit;}
+ if(is_file(__DIR__.'/install/install.php')){header('Location: install/install.php');exit;}
  http_response_code(503);
  header('Content-Type: text/plain; charset=utf-8');
  echo t('install.missing');

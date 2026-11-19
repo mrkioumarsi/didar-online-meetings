@@ -8,24 +8,15 @@
 
 ## نصب
 
-روی اوبونتو و با root. نصب‌کننده حالت شبکه، دامنه و ایمیل گواهی را می‌پرسد.
+روی اوبونتو و با root. یک دستور، رلیز v1.1.1 را می‌گیرد و نصب می‌کند. اگر `git` نبود، اول `sudo apt-get install -y git` را بزنید.
 
 ```bash
-wget -qO didar.tar.gz "https://github.com/mrkioumarsi/didar-meeting/archive/refs/tags/v1.1.1.tar.gz?$(date +%s)"
-tar -xzf didar.tar.gz
-cd didar-1.1.1
-sudo bash install/didar-install.sh
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meeting-linux-server.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-اولین خطی که چاپ می‌کند باید `Didar 1.1.1 installer 20261113-setup` باشد. اگر نیست، `didar.tar.gz` و `didar-1.1.1` را پاک کنید و دوباره دانلود کنید.
+اولین خطی که چاپ می‌کند باید `Didar 1.1.1 installer 20261120-clone` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
 
-`direct` یعنی خود کارت شبکه IP عمومی دارد. `nat` یعنی روتر پورت‌ها را به این ماشین می‌فرستد. اگر نمی‌خواهید سؤال‌ها را جواب بدهید:
-
-```bash
-sudo bash install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
-```
-
-پشت NAT همان دستور را با `--net nat` بزنید. `--public-ip` فقط وقتی لازم است که دامنه هنوز رکورد A نداشته باشد.
+`--net direct` یعنی خود کارت شبکه IP عمومی دارد. پشت روتر، در همان دستور `--net nat` بگذارید. `--public-ip` فقط وقتی لازم است که دامنه هنوز رکورد A نداشته باشد.
 
 `--confirm-wipe` همهٔ پایگاه‌داده‌های MariaDB روی همین ماشین را پاک می‌کند. سایت‌های دیگر Nginx می‌مانند. فایروال فقط قانون جدید می‌گیرد. بدون این فلگ، اسکریپت صبر می‌کند تا `WIPE-DATABASES` را بنویسید. رمز مدیر حداقل ۸ نویسه است. اگر `--admin-pass` را ننویسید، یک رمز ساخته می‌شود.
 

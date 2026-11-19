@@ -6,17 +6,40 @@
 
 [English](README.md)
 
+## پیش‌نیازها
+
+- اوبونتو، و یک شل root
+- `git`. اگر نبود: `sudo apt-get install -y git`
+- یک دامنه
+- یک IP عمومی، و رکورد A دامنه روی همان IP، پیش از گرفتن گواهی
+- پورت‌های بخش پورت‌ها، باز روی همان IP عمومی
+- خروجی HTTPS، تا Let's Encrypt در دسترس باشد
+
+نصب‌کننده Nginx، MariaDB، PHP، Coturn، LiveKit، certbot و ffmpeg را می‌گذارد. سایت‌های دیگر Nginx می‌مانند. فایروال فقط قانون جدید می‌گیرد.
+
+## مستقیم یا پشت NAT
+
+`direct`: خود کارت شبکهٔ این ماشین IP عمومی دارد. رکورد A را به همان آدرس بدهید.
+
+`nat`: روتر IP عمومی را دارد و این ماشین یک آدرس خصوصی دارد. رکورد A را به IP عمومی روتر بدهید و همهٔ پورت‌های بخش پورت‌ها را به این ماشین فوروارد کنید. LiveKit به همان IP عمومی سنجاق می‌شود. Coturn آدرس عمومی را اعلام می‌کند و از کارت خصوصی رله می‌کند. گوشی روی همان وای‌فای سرور اغلب نام عمومی را باز نمی‌کند، پس تماس را از اینترنت موبایل امتحان کنید. `--public-ip` فقط وقتی لازم است که دامنه هنوز رکورد A نداشته باشد.
+
 ## نصب
 
-روی اوبونتو و با root. یک دستور، رلیز v1.1.1 را می‌گیرد و نصب می‌کند. اگر `git` نبود، اول `sudo apt-get install -y git` را بزنید.
+روی خود سرور، وقتی کارت شبکه همان IP عمومی است:
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meeting-linux-server.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
-اولین خطی که چاپ می‌کند باید `Didar 1.1.1 installer 20261120-clone` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
+پشت روتر:
 
-`--net direct` یعنی خود کارت شبکه IP عمومی دارد. پشت روتر، در همان دستور `--net nat` بگذارید. `--public-ip` فقط وقتی لازم است که دامنه هنوز رکورد A نداشته باشد.
+```bash
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+```
+
+اگر دامنه هنوز رکورد A ندارد، `--public-ip 203.0.113.10` را به دستور nat اضافه کنید.
+
+اولین خطی که چاپ می‌کند باید `Didar 1.1.1 installer 20261120-clone` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
 
 `--confirm-wipe` همهٔ پایگاه‌داده‌های MariaDB روی همین ماشین را پاک می‌کند. سایت‌های دیگر Nginx می‌مانند. فایروال فقط قانون جدید می‌گیرد. بدون این فلگ، اسکریپت صبر می‌کند تا `WIPE-DATABASES` را بنویسید. رمز مدیر حداقل ۸ نویسه است. اگر `--admin-pass` را ننویسید، یک رمز ساخته می‌شود.
 

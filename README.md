@@ -22,13 +22,13 @@ The installer adds Nginx, MariaDB, PHP, Coturn, LiveKit, certbot, and ffmpeg. Ot
 Install on a server that has a public IP.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
 Install on a server behind NAT. Forward the ports to this machine.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
 If the domain has no A record yet, add `--public-ip` to the NAT command.

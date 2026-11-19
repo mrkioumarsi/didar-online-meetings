@@ -15,7 +15,7 @@ function didar_app(){
  return is_file($d.'/api.php')?$d:'';
 }
 function gh_body($url,$timeout=15){
- if(!preg_match('#^https://api\.github\.com/repos/mrkioumarsi/didar-free-online-meetings-app/#',$url)) return null;
+ if(!preg_match('#^https://api\.github\.com/repos/mrkioumarsi/didar-online-meetings-app/#',$url)) return null;
  $head="User-Agent: Didar\r\nAccept: application/vnd.github+json\r\n";
  if(function_exists('curl_init')){
   $ch=curl_init($url);
@@ -32,7 +32,7 @@ function gh_body($url,$timeout=15){
  return is_string($b)&&$b!==''?$b:null;
 }
 function update_remote(){
- $j=json_decode((string)gh_body('https://api.github.com/repos/mrkioumarsi/didar-free-online-meetings-app/releases/latest',8),true);
+ $j=json_decode((string)gh_body('https://api.github.com/repos/mrkioumarsi/didar-online-meetings-app/releases/latest',8),true);
  if(!is_array($j)||empty($j['tag_name'])) return null;
  if(!preg_match('/^v(\d+\.\d+\.\d+)$/',(string)$j['tag_name'],$m)) return null;
  return ['tag'=>'v'.$m[1],'ver'=>$m[1]];
@@ -75,7 +75,7 @@ function didar_rrmdir($dir){
  @rmdir($dir);
 }
 function gh_save($url,$dest){
- if(!preg_match('#^https://github\.com/mrkioumarsi/didar-free-online-meetings-app/archive/refs/tags/v\d+\.\d+\.\d+\.zip\?t=\d+$#',$url)) return false;
+ if(!preg_match('#^https://github\.com/mrkioumarsi/didar-online-meetings-app/archive/refs/tags/v\d+\.\d+\.\d+\.zip\?t=\d+$#',$url)) return false;
  if(!function_exists('curl_init')) return false;
  $fh=@fopen($dest,'wb');
  if(!$fh) return false;
@@ -458,7 +458,7 @@ function update_pull($root,$reinstall=false){
  $zip=rtrim(sys_get_temp_dir(),'\\/').'/didar-up-'.bin2hex(random_bytes(4)).'.zip';
  $src='';
  $ok=false;
- if(gh_save('https://github.com/mrkioumarsi/didar-free-online-meetings-app/archive/refs/tags/'.$tag.'.zip?t='.time(),$zip)){
+ if(gh_save('https://github.com/mrkioumarsi/didar-online-meetings-app/archive/refs/tags/'.$tag.'.zip?t='.time(),$zip)){
   $src=update_unzip($zip);
   if($src!==''&&update_copy_tree($src,$root)) $ok=true;
  }

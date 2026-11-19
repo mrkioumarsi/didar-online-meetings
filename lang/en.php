@@ -478,7 +478,7 @@ return [
 'install.go'=>'Install',
 'install.done'=>'Installed.',
 'install.remove'=>'Installer files are removed after a successful install.',
-'install.missing'=>'Didar is not installed. On Ubuntu run: git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-free-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain your-domain --email you@example.com --admin-user admin --admin-pass your-password --confirm-wipe',
+'install.missing'=>'Didar is not installed. On Ubuntu run: git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain your-domain --email you@example.com --admin-user admin --admin-pass your-password --confirm-wipe',
 'install.open'=>'Open the app',
 'install.shared'=>'Shared hosting can run direct mode only. STUN, TURN, and the media server cannot be installed on cPanel. For larger groups, run sudo bash install/didar-install.sh --net direct --domain your-domain --email you@example.com --admin-user admin --admin-pass your-password --confirm-wipe on an Ubuntu server and put its addresses in settings. If that script prepared this folder, the addresses are already saved.',
 'install.dbfail'=>'Could not connect to the database.',

@@ -1,145 +1,82 @@
 # Didar
 
-Didar is a meeting app that runs in the browser and is written in PHP. People join a room, talk, use a camera, share a screen, draw on the whiteboard, open images, video, and PDFs, and send chat. A small group connects from browser to browser. A larger group sends audio and video through a media server that this project installs on your own Ubuntu machine. There is no outside meeting service. Accounts, rooms, chat, recordings, and settings stay in your database.
+Free and private online meetings, on a server you control.
+
+People join in the browser: talk, use a camera, share a screen, draw, open files, and chat. A small group connects from browser to browser. A larger group uses the media server installed here. Accounts, rooms, chat, recordings, and files stay in your database.
 
 [فارسی](README.fa.md)
 
-## What you get
-
-- Sign-in, languages, a calendar, and a count of who is online
-- Rooms for a few people, or a media server for a larger group
-- Microphone, camera, screen share, whiteboard, and chat
-- A Files tab for images, video, and PDF, with live notes that are not saved
-- Recordings that play from the room card
-- A full database backup from Settings
-- An update from the GitHub release, without touching the database or uploads
-
-## What you need
-
-- Ubuntu with root
-- A domain whose A record points at the public IP of this server
-- An email address for the HTTPS certificate
-- Outbound HTTPS to Let's Encrypt (`acme-v02.api.letsencrypt.org`)
-- These ports open on the public IP. In `--net nat` mode, forward them to the private address of the server:
-  - SSH, on the port this machine already uses (22 unless you changed it)
-  - 80 and 443 TCP
-  - 3478 TCP and UDP
-  - 5349 TCP
-  - 7881 TCP
-  - UDP 49152–49999 and UDP 50000–60000
-
-## Choose the network mode
-
-Pick one mode. The installer does not guess.
-
-`--net direct` is a server whose own network card already has the public IP. LiveKit and Coturn both use that address. If the card is private, this mode stops and tells you to use `--net nat`.
-
-`--net nat` is a server whose network card has a private address such as `192.168.x.x`. The router forwards the ports above to that address. LiveKit announces the public IP. Coturn is set to `external-ip=PUBLIC/PRIVATE` and `relay-ip` on the private card. The public IP is the domain A record. If that record is not in place yet, pass `--public-ip`.
-
-Test audio and video from mobile data. A phone on the same Wi-Fi as the server often cannot open the public name.
-
 ## Install
 
-Run this on Ubuntu as root. `--confirm-wipe` is required when there is no prompt. It erases every MariaDB database on this machine. Other Nginx sites stay. The firewall only gains rules. It is not reset. The admin password must be at least 8 characters. If you omit `--admin-pass`, the script creates one and prints it once at the end.
-
-When the network card is the public IP:
+Ubuntu, as root. The installer asks for the network mode, the domain, and the certificate email.
 
 ```bash
-wget -qO didar.tar.gz "https://github.com/mrkioumarsi/didar/archive/refs/tags/v1.1.1.tar.gz?$(date +%s)"
+wget -qO didar.tar.gz "https://github.com/mrkioumarsi/didar-meeting/archive/refs/tags/v1.1.1.tar.gz?$(date +%s)"
 tar -xzf didar.tar.gz
 cd didar-1.1.1
-sudo bash didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+sudo bash install/didar-install.sh
 ```
 
-Behind NAT, the card is private and the router forwards the ports. Use the same commands with `--net nat` instead of `--net direct`. Add `--public-ip` when the domain A record is not ready yet.
+The first line it prints must be `Didar 1.1.1 installer 20261113-setup`. If that line is missing, delete `didar.tar.gz` and `didar-1.1.1`, then download again.
 
-Replace the domain, email, username, and password. The first installer line must be `Didar 1.1.1 installer 20261113-pdf`. If that line is missing, the download is an old copy. Delete `didar.tar.gz` and `didar-1.1.1`, then run wget again.
+Choose `direct` when this machine's network card already has the public IP. Choose `nat` when a router forwards the ports to this machine. To skip the questions:
 
-Optional flags: `--public-ip` (nat only), `--admin-name`, and `--dir` when the app is not next to the script. Without `--confirm-wipe`, the script waits until you type `WIPE-DATABASES`.
+```bash
+sudo bash install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+```
 
-The installer puts Nginx, PHP, MariaDB, Coturn, LiveKit, the HTTPS certificate, and the media ports on this machine, then creates the admin account. The app is served from `/var/www/didar` when the download directory is not already readable by the web user.
+Behind NAT, change that to `--net nat`. Add `--public-ip` only when the domain has no A record yet.
 
-At the end, `SUCCESS` prints the media mode, then the database host, name, user, and password, then the admin username and password. Copy them before you close the terminal. The database user is `didar`, the database name is `didar`, and the host is `localhost`. The MariaDB root password is not printed. It is stored in `/root/.my.cnf` and `/etc/didar/secrets.env`. The same file holds the app database password. The admin password is also in `/etc/didar/admin.txt`. The install log is `/var/log/didar-install.log`. The chosen mode is `/etc/didar/media-mode` and the public IP is `/etc/didar/pubip`.
+`--confirm-wipe` erases every MariaDB database on this machine. Other Nginx sites stay. The firewall only gains rules. Without it, the script waits until you type `WIPE-DATABASES`. The admin password needs 8 characters. Leave it out and one is created for you.
 
-Open `https://meet.example.com/` and sign in. In Settings, choose a small group or the media server. The addresses are already filled in.
+`SUCCESS` prints the media mode, then the database password, then the admin username and password. Copy them before you close the terminal. The same values are in `/etc/didar/secrets.env` and `/etc/didar/admin.txt`. The MariaDB root password is not printed. Open `https://your-domain/` and sign in.
 
-## Update
+After that, the install scripts are removed from the website folder and from the extracted folder. What remains are the commands `didar-update`, `didar-reinstall`, and `didar-uninstall`.
 
-Use this when GitHub has a newer release. The database, `config.local.php`, rooms, recordings, and uploaded files stay. The app files are replaced.
+## Update and reinstall
 
-From Settings, check GitHub, then confirm Update. On the server:
+Update when GitHub has a newer release. Reinstall downloads this same release again. The database, `config.local.php`, rooms, recordings, and uploads stay.
 
 ```bash
 sudo didar-update
-```
-
-If that command is missing:
-
-```bash
-sudo bash /var/www/didar/didar-update.sh
-```
-
-## Reinstall this version
-
-Use this when the server is already on this version and you need the current files of that same release again. It downloads the tag once more. The database, `config.local.php`, and uploads stay. From Settings, use «Reinstall this release», or:
-
-```bash
 sudo didar-reinstall
 ```
 
-```bash
-sudo bash /var/www/didar/didar-reinstall.sh
-```
+Settings has the same two actions. A failed first install is not repaired by reinstall. Download the release and run the installer again. That wipes MariaDB.
 
-A failed first install is not repaired by reinstall. Download the release again and run `didar-install.sh`. That wipes MariaDB.
+## Ports
 
-## Certificate
+These must be open on the public IP. In nat mode, forward them to the server.
 
-The installer asks Let's Encrypt for a certificate in the last step. If that times out, wait and run the installer again. Outbound HTTPS to Let's Encrypt must be open.
+- SSH, on the port this machine already uses
+- 80 and 443 TCP
+- 3478 TCP and UDP
+- 5349 TCP
+- 7881 TCP
+- UDP 49152–49999 and UDP 50000–60000
 
-Later, Settings can keep the automatic certificate or take a private key, public key, certificate, and bundle. Saving restarts the web server once. If you return to automatic and that certificate is missing, the manual certificate stays. Renewal copies the automatic certificate to Coturn. `didar-renew` and `didar-ssl` are installed for that work.
+Outbound HTTPS to Let's Encrypt must be open. If the certificate times out, wait and run the installer again.
+
+Test a call from mobile data. A phone on the same Wi-Fi as the server often cannot open the public name.
+
+LiveKit is pinned to a real address, with `use_external_ip` off. In direct mode, Coturn uses the public card on both sides. In nat mode, it advertises the public IP and relays from the private card. «Force TURN» stays off unless you turn it on in Settings.
+
+Later, Settings can keep the automatic certificate or take a private key, public key, certificate, and bundle. Saving restarts the web server once. If you return to automatic and that certificate is missing, the manual certificate stays.
 
 ## Uninstall
 
-Two modes. Without `--yes`, the script waits until you type the confirm word.
-
-`--soft` — type `REMOVE`. This deletes the Didar database and user, the Didar files, the Didar Nginx site, the Didar PHP pool, LiveKit, Coturn, and the Didar certificate. Nginx, PHP, MariaDB, other databases, other sites, certbot, ffmpeg, SSH, and UFW stay.
-
 ```bash
 sudo didar-uninstall --soft
-```
-
-`--hard` — type `DELETE`. This also removes Nginx, PHP, MariaDB with every database, certbot, ffmpeg, all certificates on this server, and the firewall rules the installer opened. SSH and UFW itself stay. This cannot be undone.
-
-```bash
 sudo didar-uninstall --hard
 ```
 
-Without a prompt, add `--yes` next to `--soft` or `--hard`. If the command is missing:
+`--soft` waits until you type `REMOVE`. Didar's database, files, site, LiveKit, Coturn, and certificate are removed. Nginx, PHP, MariaDB, other sites, SSH, and UFW stay.
 
-```bash
-sudo bash /var/www/didar/didar-uninstall.sh --soft
-sudo bash /var/www/didar/didar-uninstall.sh --hard
-```
+`--hard` waits until you type `DELETE`. This also removes Nginx, PHP, MariaDB and every database, certbot, ffmpeg, the certificates on this server, and the firewall rules the installer opened. SSH and UFW itself stay. Add `--yes` when there is no prompt.
 
-## If audio or video fails
+## In a room
 
-LiveKit is pinned to a real address, with `use_external_ip` off. It does not discover an address through STUN. In direct mode, both sides of Coturn are the public card. In nat mode, Coturn advertises the public IP and relays from the private card.
-
-The browser uses the STUN and TURN addresses stored in Settings (port 3478, and 5349 for TLS). «Force TURN» stays off unless you turn it on in Settings. Turn it on only when direct media is unstable and TURN is already filled in.
-
-In nat mode, check that the router forwards the ports listed above and that `/etc/didar/pubip` is the real public IP. Then test from mobile data.
-
-## In the app
-
-- Choose a language when you sign in. Change it later in your profile. A new language is a file in `lang/`.
-- Dates follow the calendar and time zone in Settings.
-- Password strength is in Settings: low, medium, or high.
-- The online count comes from the app. CPU, memory, and bandwidth show up when the server can read them.
-- A room manager can record the meeting. The file stays on that room and plays from the room card.
-- The Files tab holds images, video, and PDFs. Notes on an image or PDF are live for people in the room and are not saved. People in the room can download the files. The host deletes them and can allow others to upload.
-- When the host opens the stage, the whiteboard, or Files, the room follows. A file the host opens is shown to the room.
-- Settings can download a full database backup.
+Microphone, camera, screen share, whiteboard, and chat. The Files tab holds images, video, and PDF. Notes on a file are live for the room and are not saved. People in the room can download the files. The host deletes them. When the host opens the stage, the whiteboard, or a file, the room follows. Recordings play from the room card. Settings can download a full database backup.
 
 ## Donate
 

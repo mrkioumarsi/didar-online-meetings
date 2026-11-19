@@ -15,7 +15,7 @@ function didar_app(){
  return is_file($d.'/api.php')?$d:'';
 }
 function gh_body($url,$timeout=15){
- if(!preg_match('#^https://api\.github\.com/repos/mrkioumarsi/didar/#',$url)) return null;
+ if(!preg_match('#^https://api\.github\.com/repos/mrkioumarsi/didar-meeting/#',$url)) return null;
  $head="User-Agent: Didar\r\nAccept: application/vnd.github+json\r\n";
  if(function_exists('curl_init')){
   $ch=curl_init($url);
@@ -32,7 +32,7 @@ function gh_body($url,$timeout=15){
  return is_string($b)&&$b!==''?$b:null;
 }
 function update_remote(){
- $j=json_decode((string)gh_body('https://api.github.com/repos/mrkioumarsi/didar/releases/latest',8),true);
+ $j=json_decode((string)gh_body('https://api.github.com/repos/mrkioumarsi/didar-meeting/releases/latest',8),true);
  if(!is_array($j)||empty($j['tag_name'])) return null;
  if(!preg_match('/^v(\d+\.\d+\.\d+)$/',(string)$j['tag_name'],$m)) return null;
  return ['tag'=>'v'.$m[1],'ver'=>$m[1]];
@@ -75,7 +75,7 @@ function didar_rrmdir($dir){
  @rmdir($dir);
 }
 function gh_save($url,$dest){
- if(!preg_match('#^https://github\.com/mrkioumarsi/didar/archive/refs/tags/v\d+\.\d+\.\d+\.zip\?t=\d+$#',$url)) return false;
+ if(!preg_match('#^https://github\.com/mrkioumarsi/didar-meeting/archive/refs/tags/v\d+\.\d+\.\d+\.zip\?t=\d+$#',$url)) return false;
  if(!function_exists('curl_init')) return false;
  $fh=@fopen($dest,'wb');
  if(!$fh) return false;
@@ -200,8 +200,10 @@ function didar_sudoers(){
  $root=dirname(__DIR__);
  if(is_dir('/usr/local/sbin')&&is_writable('/usr/local/sbin')){
   foreach(['didar-update.sh'=>'/usr/local/sbin/didar-update','didar-reinstall.sh'=>'/usr/local/sbin/didar-reinstall','didar-uninstall.sh'=>'/usr/local/sbin/didar-uninstall','didar-renew.sh'=>'/usr/local/sbin/didar-renew','didar-ssl.sh'=>'/usr/local/sbin/didar-ssl'] as $src=>$dst){
-   if(!is_file($root.'/'.$src)) continue;
-   @copy($root.'/'.$src,$dst);
+   $from=$root.'/install/'.$src;
+   if(!is_file($from)) $from=$root.'/'.$src;
+   if(!is_file($from)) continue;
+   @copy($from,$dst);
    @chmod($dst,0755);
   }
  }
@@ -368,8 +370,8 @@ function nginx_hide(){
   @copy($root.'/schema.sql','/etc/didar/schema.sql');
   @chmod('/etc/didar/schema.sql',0600);
  }
- $sh=$root.'/didar-update.sh';
- if(!is_file($sh))$sh=$root.'/install/didar-update.sh';
+ $sh=$root.'/install/didar-update.sh';
+ if(!is_file($sh))$sh=$root.'/didar-update.sh';
  if(is_file($sh)&&is_dir('/usr/local/sbin')&&is_writable('/usr/local/sbin')){
   @copy($sh,'/usr/local/sbin/didar-update');
   @chmod('/usr/local/sbin/didar-update',0755);
@@ -383,7 +385,7 @@ function nginx_hide(){
  }
  $files=didar_nginx_files();
  if(!$files)return;
- $deny=['location = /schema.sql { deny all; }','location = /didar-install.sh { deny all; }','location = /didar-update.sh { deny all; }','location = /didar-reinstall.sh { deny all; }','location = /didar-renew.sh { deny all; }','location = /didar-ssl.sh { deny all; }','location = /didar-uninstall.sh { deny all; }','location = /install.php { deny all; }'];
+ $deny=['location = /schema.sql { deny all; }','location ^~ /install/ { deny all; }','location = /didar-install.sh { deny all; }','location = /didar-update.sh { deny all; }','location = /didar-reinstall.sh { deny all; }','location = /didar-renew.sh { deny all; }','location = /didar-ssl.sh { deny all; }','location = /didar-uninstall.sh { deny all; }','location = /install.php { deny all; }'];
  $changed=false;
  foreach($files as $f){
   if(!is_writable($f))continue;
@@ -405,13 +407,26 @@ function nginx_hide(){
  if(getenv('DIDAR_UPDATE')==='1')return;
  if(didar_fn('exec'))exec('bash -c '.escapeshellarg('sleep 2; systemctl reload php'.$ver.'-fpm >/dev/null 2>&1 || true; nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true').' >/dev/null 2>&1 &');
 }
+function didar_drop_setup($root){
+ if(!is_string($root)||$root===''||!is_dir($root)) return;
+ $names=['didar-install.sh','didar-update.sh','didar-reinstall.sh','didar-uninstall.sh','didar-renew.sh','didar-ssl.sh','install.php','schema.sql'];
+ foreach($names as $n){
+  if(is_file($root.'/'.$n)) @unlink($root.'/'.$n);
+ }
+ $dir=$root.'/install';
+ if(!is_dir($dir)) return;
+ foreach($names as $n){
+  if(is_file($dir.'/'.$n)) @unlink($dir.'/'.$n);
+ }
+ @rmdir($dir);
+}
 function update_finish($root){
  if(is_dir('/etc/didar')&&is_writable('/etc/didar')){
   foreach([$root.'/schema.sql',$root.'/install/schema.sql'] as $s){
    if(is_file($s)){@copy($s,'/etc/didar/schema.sql');@chmod('/etc/didar/schema.sql',0600);break;}
   }
  }
- foreach([$root.'/didar-update.sh',$root.'/install/didar-update.sh'] as $sh){
+ foreach([$root.'/install/didar-update.sh',$root.'/didar-update.sh'] as $sh){
   if(is_file($sh)&&is_dir('/usr/local/sbin')&&is_writable('/usr/local/sbin')){
    @copy($sh,'/usr/local/sbin/didar-update');
    @chmod('/usr/local/sbin/didar-update',0755);
@@ -420,10 +435,7 @@ function update_finish($root){
  }
  if(function_exists('posix_geteuid')&&posix_geteuid()===0)nginx_hide();
  if(is_file($root.'/storage/installed.lock')){
-  @unlink($root.'/install.php');
-  @unlink($root.'/schema.sql');
-  @unlink($root.'/install/install.php');
-  @unlink($root.'/install/schema.sql');
+  didar_drop_setup($root);
  }
  @unlink($root.'/storage/update.json');
  if(function_exists('opcache_reset')) @opcache_reset();
@@ -446,7 +458,7 @@ function update_pull($root,$reinstall=false){
  $zip=rtrim(sys_get_temp_dir(),'\\/').'/didar-up-'.bin2hex(random_bytes(4)).'.zip';
  $src='';
  $ok=false;
- if(gh_save('https://github.com/mrkioumarsi/didar/archive/refs/tags/'.$tag.'.zip?t='.time(),$zip)){
+ if(gh_save('https://github.com/mrkioumarsi/didar-meeting/archive/refs/tags/'.$tag.'.zip?t='.time(),$zip)){
   $src=update_unzip($zip);
   if($src!==''&&update_copy_tree($src,$root)) $ok=true;
  }

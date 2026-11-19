@@ -120,6 +120,21 @@ done
 
 [ "$(id -u)" -eq 0 ] || fail "Run this installer as root"
 
+if [ -t 0 ]; then
+    if [ -z "$NET" ]; then
+        echo "direct: this machine's network card is the public IP."
+        echo "nat: a router forwards the ports to this machine."
+        read -r -p "Network mode [direct]: " NET || true
+        [ -n "$NET" ] || NET=direct
+    fi
+    if [ -z "$DOMAIN" ]; then
+        read -r -p "Domain: " DOMAIN || true
+    fi
+    if [ -z "$EMAIL" ]; then
+        read -r -p "Certificate email: " EMAIL || true
+    fi
+fi
+
 [ -n "$DOMAIN" ] || fail "Domain is required"
 [ -n "$EMAIL" ] || fail "Email is required"
 
@@ -159,13 +174,14 @@ APPDIR="$(realpath "$APPDIR")"
 [ -f "$APPDIR/api.php" ] || fail "api.php not found in $APPDIR"
 [ -f "$APPDIR/index.php" ] || fail "index.php not found in $APPDIR"
 [ -f "$APPDIR/schema.sql" ] || fail "schema.sql not found"
-[ -f "$APPDIR/didar-update.sh" ] || fail "didar-update.sh not found"
-[ -f "$APPDIR/didar-uninstall.sh" ] || fail "didar-uninstall.sh not found"
-[ -f "$APPDIR/didar-reinstall.sh" ] || fail "didar-reinstall.sh not found"
-[ -f "$APPDIR/didar-renew.sh" ] || fail "didar-renew.sh not found"
-[ -f "$APPDIR/didar-ssl.sh" ] || fail "didar-ssl.sh not found"
+[ -f "$APPDIR/install/didar-update.sh" ] || fail "didar-update.sh not found"
+[ -f "$APPDIR/install/didar-uninstall.sh" ] || fail "didar-uninstall.sh not found"
+[ -f "$APPDIR/install/didar-reinstall.sh" ] || fail "didar-reinstall.sh not found"
+[ -f "$APPDIR/install/didar-renew.sh" ] || fail "didar-renew.sh not found"
+[ -f "$APPDIR/install/didar-ssl.sh" ] || fail "didar-ssl.sh not found"
+ORIG="$APPDIR"
 
-echo "Didar 1.1.1 installer 20261113-pdf"
+echo "Didar 1.1.1 installer 20261113-setup"
 
 [[ "$APPDIR" != *" "* ]] || fail "Application path cannot contain spaces"
 
@@ -1000,11 +1016,11 @@ chmod 640 "$APPDIR/config.local.php"
 
 step "17. Installing Didar management commands"
 
-install -m 755 "$APPDIR/didar-update.sh" /usr/local/sbin/didar-update
-install -m 755 "$APPDIR/didar-reinstall.sh" /usr/local/sbin/didar-reinstall
-install -m 755 "$APPDIR/didar-uninstall.sh" /usr/local/sbin/didar-uninstall
-install -m 755 "$APPDIR/didar-renew.sh" /usr/local/sbin/didar-renew
-install -m 755 "$APPDIR/didar-ssl.sh" /usr/local/sbin/didar-ssl
+install -m 755 "$APPDIR/install/didar-update.sh" /usr/local/sbin/didar-update
+install -m 755 "$APPDIR/install/didar-reinstall.sh" /usr/local/sbin/didar-reinstall
+install -m 755 "$APPDIR/install/didar-uninstall.sh" /usr/local/sbin/didar-uninstall
+install -m 755 "$APPDIR/install/didar-renew.sh" /usr/local/sbin/didar-renew
+install -m 755 "$APPDIR/install/didar-ssl.sh" /usr/local/sbin/didar-ssl
 
 echo "$APPDIR" > /etc/didar/appdir
 echo "$DOMAIN" > /etc/didar/domain
@@ -1075,6 +1091,7 @@ server {
     }
 
     location = /schema.sql { deny all; }
+    location ^~ /install/ { deny all; }
     location = /didar-install.sh { deny all; }
     location = /didar-update.sh { deny all; }
     location = /didar-reinstall.sh { deny all; }
@@ -1210,6 +1227,7 @@ ${HTTP2_LINE}
     }
 
     location = /schema.sql { deny all; }
+    location ^~ /install/ { deny all; }
     location = /didar-install.sh { deny all; }
     location = /didar-update.sh { deny all; }
     location = /didar-reinstall.sh { deny all; }
@@ -1313,6 +1331,22 @@ echo "Database user: didar"
 echo "Database password: ${DBPASS}"
 echo "Admin username: ${ADMIN_USER}"
 echo "Admin password: ${ADMIN_PASS}"
+
+drop_setup() {
+    local d="$1"
+    [ -n "$d" ] && [ -d "$d" ] || return 0
+    rm -f \
+        "$d/didar-install.sh" "$d/didar-update.sh" "$d/didar-reinstall.sh" \
+        "$d/didar-uninstall.sh" "$d/didar-renew.sh" "$d/didar-ssl.sh" \
+        "$d/install.php" "$d/schema.sql"
+    rm -rf "$d/install"
+}
+
+drop_setup "$APPDIR"
+if [ "$ORIG" != "$APPDIR" ]; then
+    drop_setup "$ORIG"
+fi
+echo "Install files removed."
 
 unset DBROOTPASS DBPASS TURNSEC LKKEY LKSEC ADMIN_PASS
 

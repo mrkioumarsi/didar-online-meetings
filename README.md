@@ -1,4 +1,4 @@
-# Didar Online Meeting
+# Didar Online Meetings
 
 Free and private online meetings, on a server you control.
 

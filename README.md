@@ -88,7 +88,7 @@ Microphone, camera, screen share, whiteboard, and chat. The Files tab holds imag
 
 ## License
 
-MRKLinkhub is free and open source under the [MIT License](LICENSE).
+ِِDidar online meetings is free and open source under the [MIT License](LICENSE).
 
 ## Donate
 

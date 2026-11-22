@@ -88,8 +88,4 @@ sudo didar-uninstall --hard
 
 ## حمایت
 
-حمایت مالی خوشامد است. USDT روی شبکهٔ BNB Smart Chain (BEP20):
-
-```
-0xAec9F6Ad80940a50e35F453d3354CA8379d0CFaD
-```
+https://mrkioumarsi.ir/donate.php?lang=en

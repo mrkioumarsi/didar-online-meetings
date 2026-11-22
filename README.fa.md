@@ -22,13 +22,13 @@
 نصب روی سروری که IP عمومی دارد.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
 نصب روی سروری که پشت NAT است. پورت‌ها را به این ماشین فوروارد کنید.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings-app.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
 ```
 
 اگر دامنه هنوز رکورد A ندارد، `--public-ip` را به دستور NAT اضافه کنید.

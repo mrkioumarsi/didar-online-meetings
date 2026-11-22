@@ -1,4 +1,4 @@
-# Online Meeting App
+# Didar Online Meeting
 
 Free and private online meetings, on a server you control.
 

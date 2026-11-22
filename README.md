@@ -86,6 +86,10 @@ sudo didar-uninstall --hard
 
 Microphone, camera, screen share, whiteboard, and chat. The Files tab holds images, video, and PDF. Notes on a file are live for the room and are not saved. People in the room can download the files. The host deletes them. When the host opens the stage, the whiteboard, or a file, the room follows. Recordings play from the room card. Settings can download a full database backup.
 
+## License
+
+MRKLinkhub is free and open source under the [MIT License](LICENSE).
+
 ## Donate
 
 https://mrkioumarsi.ir/donate.php?lang=en

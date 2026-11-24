@@ -22,20 +22,31 @@
 نصب روی سروری که IP عمومی دارد.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --confirm-wipe
 ```
 
 نصب روی سروری که پشت NAT است. پورت‌ها را به این ماشین فوروارد کنید.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --confirm-wipe
 ```
 
-اگر دامنه هنوز رکورد A ندارد، `--public-ip` را به دستور NAT اضافه کنید.
+اولین خطی که چاپ می‌کند باید `Didar 1.1.2 installer 20261122-ask` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
 
-اولین خطی که چاپ می‌کند باید `Didar 1.1.1 installer 20261120-clone` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
+اگر پارامتری از فهرست زیر در دستور نباشد، نصب‌کننده قبل از نصب هر ابزاری همان را می‌پرسد. در ترمینال، Enter مقدار داخل کروشه را می‌پذیرد.
 
-`--confirm-wipe` همهٔ پایگاه‌داده‌های MariaDB روی همین ماشین را پاک می‌کند. سایت‌های دیگر Nginx می‌مانند. فایروال فقط قانون جدید می‌گیرد. بدون این فلگ، اسکریپت صبر می‌کند تا `WIPE-DATABASES` را بنویسید. رمز مدیر حداقل ۸ نویسه است. اگر `--admin-pass` را ننویسید، یک رمز ساخته می‌شود.
+- `--domain meet.example.com` — نام سایت
+- `--email you@example.com` — ایمیل گواهی
+- `--lang en` یا `--lang fa` — زبان پیش‌فرض. مقدار داخل کروشه `fa` است
+- `--admin-user admin` — نام کاربری پنل
+- `--admin-pass 'your-password'` — حداقل ۸ نویسه. Enter یک رمز می‌سازد
+- `--admin-name Admin` — نام همان حساب
+- `--public-ip 203.0.113.10` — برای nat، وقتی دامنه هنوز رکورد A ندارد
+- `--dir /path/to/didar` — وقتی پوشهٔ برنامه کنار اسکریپت پیدا نشود
+
+`--confirm-wipe` همهٔ پایگاه‌داده‌های MariaDB روی همین ماشین را پاک می‌کند. سایت‌های دیگر Nginx می‌مانند. فایروال فقط قانون جدید می‌گیرد. بدون این فلگ، اسکریپت صبر می‌کند تا `WIPE-DATABASES` را بنویسید.
+
+بدون ترمینال، دستور به `--net` و `--domain` و `--email` و `--confirm-wipe` نیاز دارد. زبان فارسی می‌ماند، نام کاربری `admin` می‌ماند، و رمز مدیر ساخته می‌شود.
 
 `SUCCESS` اول حالت مدیا را چاپ می‌کند، بعد رمز پایگاه داده، بعد نام کاربری و رمز مدیر. قبل از بستن ترمینال آن‌ها را بردارید. همان مقدارها در `/etc/didar/secrets.env` و `/etc/didar/admin.txt` است. رمز root ماریا چاپ نمی‌شود. `https://your-domain/` را باز کنید و وارد شوید.
 

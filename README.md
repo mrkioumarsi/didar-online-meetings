@@ -22,20 +22,31 @@ The installer adds Nginx, MariaDB, PHP, Coturn, LiveKit, certbot, and ffmpeg. Ot
 Install on a server that has a public IP.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --confirm-wipe
 ```
 
 Install on a server behind NAT. Forward the ports to this machine.
 
 ```bash
-git clone --depth 1 --branch v1.1.1 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --domain meet.example.com --email you@example.com --admin-user admin --admin-pass 'your-password' --confirm-wipe
+git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --confirm-wipe
 ```
 
-If the domain has no A record yet, add `--public-ip` to the NAT command.
+The first line it prints must be `Didar 1.1.2 installer 20261122-ask`. If that line is missing, delete the `didar` folder and run the command again.
 
-The first line it prints must be `Didar 1.1.1 installer 20261120-clone`. If that line is missing, delete the `didar` folder and run the command again.
+If a parameter below is left out, the installer asks for it before it installs any tool. On a terminal, Enter accepts the value in brackets.
 
-`--confirm-wipe` erases every MariaDB database on this machine. Other Nginx sites stay. The firewall only gains rules. Without it, the script waits until you type `WIPE-DATABASES`. The admin password needs 8 characters. Leave it out and one is created for you.
+- `--domain meet.example.com` — the site name
+- `--email you@example.com` — the address for the certificate
+- `--lang en` or `--lang fa` — the default language. The bracket value is `fa`
+- `--admin-user admin` — the panel username
+- `--admin-pass 'your-password'` — at least 8 characters. Enter creates one
+- `--admin-name Admin` — the name on that account
+- `--public-ip 203.0.113.10` — for nat, when the domain has no A record yet
+- `--dir /path/to/didar` — when the application folder is not next to the script
+
+`--confirm-wipe` erases every MariaDB database on this machine. Other Nginx sites stay. The firewall only gains rules. Without it, the script waits until you type `WIPE-DATABASES`.
+
+Without a terminal, the command needs `--net`, `--domain`, `--email`, and `--confirm-wipe`. The language stays Persian, the username stays `admin`, and the admin password is created.
 
 `SUCCESS` prints the media mode, then the database password, then the admin username and password. Copy them before you close the terminal. The same values are in `/etc/didar/secrets.env` and `/etc/didar/admin.txt`. The MariaDB root password is not printed. Open `https://your-domain/` and sign in.
 

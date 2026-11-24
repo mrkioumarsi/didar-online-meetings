@@ -6,9 +6,10 @@ LOG="/var/log/didar-install.log"
 DOMAIN=""
 EMAIL=""
 APPDIR=""
-ADMIN_USER="admin"
+ADMIN_USER=""
 ADMIN_PASS=""
-ADMIN_NAME="Admin"
+ADMIN_NAME=""
+APP_LANG=""
 CONFIRM_WIPE=0
 MEDIA_MODE="unknown"
 NET=""
@@ -110,6 +111,7 @@ while [ $# -gt 0 ]; do
         --admin-pass)   [ $# -ge 2 ] || fail "Missing admin password"; ADMIN_PASS="$2"; shift 2 ;;
         --admin-name)   [ $# -ge 2 ] || fail "Missing admin name"; ADMIN_NAME="$2"; shift 2 ;;
         --net)          [ $# -ge 2 ] || fail "Missing network mode"; NET="$2"; shift 2 ;;
+        --lang)         [ $# -ge 2 ] || fail "Missing language"; APP_LANG="$2"; shift 2 ;;
         --public-ip)    [ $# -ge 2 ] || fail "Missing public IP"; PUBLIC_IP="$2"; shift 2 ;;
         --confirm-wipe) CONFIRM_WIPE=1; shift ;;
         *)
@@ -119,43 +121,6 @@ while [ $# -gt 0 ]; do
 done
 
 [ "$(id -u)" -eq 0 ] || fail "Run this installer as root"
-
-if [ -t 0 ]; then
-    if [ -z "$NET" ]; then
-        echo "direct: this machine's network card is the public IP."
-        echo "nat: a router forwards the ports to this machine."
-        read -r -p "Network mode [direct]: " NET || true
-        [ -n "$NET" ] || NET=direct
-    fi
-    if [ -z "$DOMAIN" ]; then
-        read -r -p "Domain: " DOMAIN || true
-    fi
-    if [ -z "$EMAIL" ]; then
-        read -r -p "Certificate email: " EMAIL || true
-    fi
-fi
-
-[ -n "$DOMAIN" ] || fail "Domain is required"
-[ -n "$EMAIL" ] || fail "Email is required"
-
-[[ "$DOMAIN" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || fail "Invalid domain"
-[[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] || fail "Invalid email"
-case "$NET" in
-    nat|direct) ;;
-    *) fail "Choose a network mode: --net nat or --net direct" ;;
-esac
-if [ -n "$PUBLIC_IP" ] && ! ok_pub "$PUBLIC_IP"; then
-    fail "Invalid --public-ip"
-fi
-[[ "$ADMIN_USER" =~ ^[A-Za-z0-9._-]{3,50}$ ]] || fail "Invalid admin username"
-
-case "$ADMIN_PASS" in
-    *$'\n'*|*$'\r'*) fail "Invalid admin password" ;;
-esac
-
-if [ -n "$ADMIN_PASS" ] && [ "${#ADMIN_PASS}" -lt 8 ]; then
-    fail "Admin password must contain at least 8 characters"
-fi
 
 if [ -z "$APPDIR" ]; then
     HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -181,35 +146,94 @@ APPDIR="$(realpath "$APPDIR")"
 [ -f "$APPDIR/install/didar-ssl.sh" ] || fail "didar-ssl.sh not found"
 ORIG="$APPDIR"
 
-echo "Didar 1.1.1 installer 20261120-clone"
+echo "Didar 1.1.2 installer 20261122-ask"
 
 [[ "$APPDIR" != *" "* ]] || fail "Application path cannot contain spaces"
 
 . /etc/os-release
 [ "${ID:-}" = "ubuntu" ] || fail "Ubuntu is required"
 
+if [ -z "$NET" ] && [ -t 0 ]; then
+    echo "direct: this machine's network card is the public IP."
+    echo "nat: a router forwards the ports to this machine."
+    read -r -p "Network mode [direct]: " NET || true
+    [ -n "$NET" ] || NET=direct
+fi
+if [ -z "$DOMAIN" ] && [ -t 0 ]; then
+    read -r -p "Domain: " DOMAIN || true
+fi
+if [ -z "$EMAIL" ] && [ -t 0 ]; then
+    read -r -p "Certificate email: " EMAIL || true
+fi
+if [ -z "$APP_LANG" ]; then
+    if [ -t 0 ]; then
+        read -r -p "Default language, en or fa [fa]: " APP_LANG || true
+    fi
+    [ -n "$APP_LANG" ] || APP_LANG=fa
+fi
+if [ -z "$ADMIN_USER" ]; then
+    if [ -t 0 ]; then
+        read -r -p "Admin username [admin]: " ADMIN_USER || true
+    fi
+    [ -n "$ADMIN_USER" ] || ADMIN_USER=admin
+fi
+if [ -z "$ADMIN_NAME" ]; then
+    if [ -t 0 ]; then
+        read -r -p "Admin name [Admin]: " ADMIN_NAME || true
+    fi
+    [ -n "$ADMIN_NAME" ] || ADMIN_NAME=Admin
+fi
+if [ "$NET" = "nat" ] && [ -z "$PUBLIC_IP" ] && [ -t 0 ]; then
+    read -r -p "Public IP (Enter = domain A record): " PUBLIC_IP || true
+fi
+if [ -z "$ADMIN_PASS" ] && [ -t 0 ]; then
+    while true; do
+        read -r -s -p "Admin password (Enter = generate): " ADMIN_PASS || true
+        echo
+        if [ -z "$ADMIN_PASS" ]; then
+            ADMIN_PASS="$(openssl rand -hex 16)"
+            break
+        fi
+        if [ "${#ADMIN_PASS}" -ge 8 ]; then
+            break
+        fi
+        echo "Admin password must contain at least 8 characters"
+        ADMIN_PASS=""
+    done
+fi
+if [ -z "$ADMIN_PASS" ]; then
+    ADMIN_PASS="$(openssl rand -hex 16)"
+fi
 if [ "$CONFIRM_WIPE" -ne 1 ]; then
     echo
     echo "WARNING: THIS IS A DESTRUCTIVE FRESH INSTALL."
     echo "All MariaDB databases, users and privileges will be erased."
     echo "Existing Nginx websites and their configurations will be preserved."
     echo
-
     [ -t 0 ] || fail "Non-interactive installation requires --confirm-wipe"
-
     read -r -p "Type WIPE-DATABASES to continue: " CONFIRMATION
     [ "$CONFIRMATION" = "WIPE-DATABASES" ] || fail "Installation cancelled"
 fi
 
-if [ -z "$ADMIN_PASS" ] && [ -t 0 ]; then
-    read -r -s -p "Admin password (Enter = generate): " ADMIN_PASS
-    echo
+[ -n "$DOMAIN" ] || fail "Domain is required"
+[ -n "$EMAIL" ] || fail "Email is required"
+[[ "$DOMAIN" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || fail "Invalid domain"
+[[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] || fail "Invalid email"
+case "$NET" in
+    nat|direct) ;;
+    *) fail "Choose a network mode: --net nat or --net direct" ;;
+esac
+case "$APP_LANG" in
+    en|fa) ;;
+    *) fail "Language must be en or fa" ;;
+esac
+if [ -n "$PUBLIC_IP" ] && ! ok_pub "$PUBLIC_IP"; then
+    fail "Invalid --public-ip"
 fi
-
-if [ -z "$ADMIN_PASS" ]; then
-    ADMIN_PASS="$(openssl rand -hex 16)"
-fi
-
+[[ "$ADMIN_USER" =~ ^[A-Za-z0-9._-]{3,50}$ ]] || fail "Invalid admin username"
+case "$ADMIN_PASS" in
+    *$'\n'*|*$'\r'*) fail "Invalid admin password" ;;
+esac
 [ "${#ADMIN_PASS}" -ge 8 ] || fail "Admin password must contain at least 8 characters"
 
 export DEBIAN_FRONTEND=noninteractive
@@ -759,6 +783,7 @@ export DIDAR_TURNSEC="$TURNSEC"
 export DIDAR_LKKEY="$LKKEY"
 export DIDAR_LKSEC="$LKSEC"
 export DIDAR_ICE_RELAY="$ICE_RELAY"
+export DIDAR_LANG="$APP_LANG"
 
 step "11. Creating a dedicated PHP-FPM pool"
 
@@ -842,7 +867,7 @@ $C['seed'] = [
     'link_mode' => 'sfu',
     'calendar' => 'jalali',
     'timezone' => 'Asia/Tehran',
-    'default_lang' => 'fa',
+    'default_lang' => (getenv('DIDAR_LANG') === 'en' ? 'en' : 'fa'),
     'pass_policy' => 'low',
     'quality' => 'mid',
     'ice_relay' => getenv('DIDAR_ICE_RELAY') === '1' ? '1' : '0'
@@ -933,7 +958,7 @@ $settings = [
     'calendar' => 'jalali',
     'timezone' => 'Asia/Tehran',
     'pass_policy' => 'low',
-    'default_lang' => 'fa'
+    'default_lang' => (getenv('DIDAR_LANG') === 'en' ? 'en' : 'fa')
 ];
 
 $stmt = $pdo->prepare('REPLACE INTO settings(k,v) VALUES(?,?)');
@@ -945,6 +970,7 @@ foreach ($settings as $key => $value) {
 $username = getenv('DIDAR_ADMIN_USER');
 $password = getenv('DIDAR_ADMIN_PASS');
 $name = getenv('DIDAR_ADMIN_NAME');
+$lang = getenv('DIDAR_LANG') === 'en' ? 'en' : 'fa';
 
 if (!preg_match('/^[A-Za-z0-9._-]{3,50}$/', $username)) {
     throw new RuntimeException('Invalid administrator username');
@@ -965,13 +991,14 @@ if (function_exists('mb_substr')) {
 }
 
 $stmt = $pdo->prepare(
-    "INSERT INTO users(username,pass,name,role,lang) VALUES(?,?,?,'admin','fa')"
+    "INSERT INTO users(username,pass,name,role,lang) VALUES(?,?,?,'admin',?)"
 );
 
 $stmt->execute([
     $username,
     password_hash($password, PASSWORD_DEFAULT),
-    $name
+    $name,
+    $lang
 ]);
 
 $app = getenv('DIDAR_APP');

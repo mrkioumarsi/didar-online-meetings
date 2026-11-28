@@ -57,6 +57,108 @@ point_nginx(){
  sed -i -E "s#^([[:space:]]*)ssl_certificate[[:space:]]+[^;]+;#\1ssl_certificate ${cert};#" "$SITE"
 }
 
+write_https_conf(){
+ local cert="$1" key="$2" app="" dom="" ngxver="" http2=""
+ if [ -f /etc/didar/appdir ]; then app="$(tr -d '\r\n' < /etc/didar/appdir)"; fi
+ if [ -f /etc/didar/domain ]; then dom="$(tr -d '\r\n' < /etc/didar/domain)"; fi
+ [ -n "$app" ] && [ -d "$app" ] && [ -n "$dom" ] || { echo "site"; exit 1; }
+ ngxver="$(nginx -v 2>&1 | awk -F/ '{print $2; exit}')"
+ http2="    listen 443 ssl http2;"
+ if [ "$(printf '%s\n%s\n' "$ngxver" "1.25.1" | sort -V | head -n 1)" = "1.25.1" ]; then
+  http2=$'    listen 443 ssl;\n    http2 on;'
+ fi
+ cp -f "$SITE" "$SITE.didar-bak"
+ cat > "$SITE" <<EOF
+server {
+    listen 80;
+    server_name ${dom};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type text/plain;
+        allow all;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+${http2}
+    server_name ${dom};
+
+    server_tokens off;
+
+    ssl_certificate ${cert};
+    ssl_certificate_key ${key};
+
+    root ${app};
+    index index.php;
+
+    client_max_body_size 64m;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location ^~ /rtc {
+        proxy_pass http://127.0.0.1:7880;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_read_timeout 3600s;
+    }
+
+    location ^~ /twirp {
+        proxy_pass http://127.0.0.1:7880;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_read_timeout 60s;
+    }
+
+    location ~ \.php\$ {
+        try_files \$uri =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/didar.sock;
+        fastcgi_read_timeout 600s;
+    }
+
+    location = /schema.sql { deny all; }
+    location ^~ /install/ { deny all; }
+    location = /didar-install.sh { deny all; }
+    location = /didar-update.sh { deny all; }
+    location = /didar-reinstall.sh { deny all; }
+    location = /didar-renew.sh { deny all; }
+    location = /didar-ssl.sh { deny all; }
+    location = /didar-uninstall.sh { deny all; }
+    location = /install.php { deny all; }
+
+    location ~ ^/(storage|lib)/ { deny all; }
+    location ~ /(config\.php|config\.local\.php)\$ {
+        deny all;
+    }
+    location ~ /\. {
+        deny all;
+    }
+}
+EOF
+}
+
+ensure_turn_tls(){
+ local conf=/etc/turnserver.conf
+ [ -f "$conf" ] || return 0
+ grep -q '^tls-listening-port=' "$conf" || printf '\ntls-listening-port=5349\n' >> "$conf"
+ grep -q '^cert=' "$conf" || printf 'cert=/etc/coturn/certs/fullchain.pem\n' >> "$conf"
+ grep -q '^pkey=' "$conf" || printf 'pkey=/etc/coturn/certs/privkey.pem\n' >> "$conf"
+}
+
 restore_site(){
  if [ -f "$SITE.didar-bak" ]; then cp -f "$SITE.didar-bak" "$SITE"; rm -f "$SITE.didar-bak"; fi
 }
@@ -94,30 +196,45 @@ if [ "$MODE" = "manual" ]; then
   if [ "$(dirname "$SRC")" = "$stage" ]; then ok=1; fi
  done
  [ "$ok" = 1 ] || { echo "stage"; exit 1; }
- for f in privkey.pem cert.pem pubkey.pem; do
+ for f in privkey.pem cert.pem; do
   [ -f "$SRC/$f" ] || { echo "file"; exit 1; }
  done
  openssl pkey -in "$SRC/privkey.pem" -noout >/dev/null 2>&1 || { echo "key"; exit 1; }
- openssl x509 -in "$SRC/cert.pem" -noout >/dev/null 2>&1 || { echo "cert"; exit 1; }
  A="$(pub_of_key "$SRC/privkey.pem")"
- B="$(pub_of_cert "$SRC/cert.pem")"
- C="$(pub_of_file "$SRC/pubkey.pem")"
- [ -n "$A" ] && [ "$A" = "$B" ] && [ "$A" = "$C" ] || { echo "match"; exit 1; }
- FULL="$(mktemp)"
- cat "$SRC/cert.pem" > "$FULL"
- if [ -s "$SRC/bundle.pem" ] && grep -q 'BEGIN CERTIFICATE' "$SRC/bundle.pem"; then
-  tmpd="$(mktemp -d)"
-  awk -v d="$tmpd" 'BEGIN{n=0} /BEGIN CERTIFICATE/{n++; fn=sprintf("%s/%d.pem",d,n)} n{print > fn} /END CERTIFICATE/{close(fn)}' "$SRC/bundle.pem"
-  found=0
-  for c in "$tmpd"/*.pem; do
-   [ -f "$c" ] || continue
-   found=1
-   openssl x509 -in "$c" -noout >/dev/null 2>&1 || { rm -rf "$tmpd" "$FULL"; echo "bundle"; exit 1; }
-  done
-  rm -rf "$tmpd"
-  [ "$found" = 1 ] || { rm -f "$FULL"; echo "bundle"; exit 1; }
-  cat "$SRC/bundle.pem" >> "$FULL"
+ [ -n "$A" ] || { echo "key"; exit 1; }
+ if [ -s "$SRC/pubkey.pem" ] && grep -qE 'BEGIN (RSA )?PUBLIC KEY' "$SRC/pubkey.pem"; then
+  C="$(pub_of_file "$SRC/pubkey.pem")"
+  [ -n "$C" ] && [ "$A" = "$C" ] || { echo "match"; exit 1; }
  fi
+ tmpd="$(mktemp -d)"
+ : > "$tmpd/all.pem"
+ [ -s "$SRC/cert.pem" ] && cat "$SRC/cert.pem" >> "$tmpd/all.pem"
+ if [ -s "$SRC/bundle.pem" ]; then printf '\n' >> "$tmpd/all.pem"; cat "$SRC/bundle.pem" >> "$tmpd/all.pem"; fi
+ if [ -s "$SRC/pubkey.pem" ] && grep -q 'BEGIN CERTIFICATE' "$SRC/pubkey.pem"; then
+  printf '\n' >> "$tmpd/all.pem"
+  cat "$SRC/pubkey.pem" >> "$tmpd/all.pem"
+ fi
+ awk -v d="$tmpd" 'BEGIN{n=0; open=0} /BEGIN CERTIFICATE/{n++; fn=sprintf("%s/%04d.pem",d,n); open=1} open{print > (fn)} /END CERTIFICATE/{close(fn); open=0}' "$tmpd/all.pem"
+ leaf=""
+ found=0
+ for c in "$tmpd"/[0-9][0-9][0-9][0-9].pem; do
+  [ -f "$c" ] || continue
+  found=1
+  openssl x509 -in "$c" -noout >/dev/null 2>&1 || { rm -rf "$tmpd"; echo "bundle"; exit 1; }
+  if [ -z "$leaf" ] && [ "$(pub_of_cert "$c")" = "$A" ]; then leaf="$c"; fi
+ done
+ [ "$found" = 1 ] || { rm -rf "$tmpd"; echo "cert"; exit 1; }
+ [ -n "$leaf" ] || { rm -rf "$tmpd"; echo "match"; exit 1; }
+ leaf_fp="$(openssl x509 -in "$leaf" -noout -fingerprint -sha256 2>/dev/null || true)"
+ FULL="$(mktemp)"
+ cat "$leaf" > "$FULL"
+ for c in "$tmpd"/[0-9][0-9][0-9][0-9].pem; do
+  [ -f "$c" ] || continue
+  fp="$(openssl x509 -in "$c" -noout -fingerprint -sha256 2>/dev/null || true)"
+  [ -n "$leaf_fp" ] && [ "$fp" = "$leaf_fp" ] && continue
+  cat "$c" >> "$FULL"
+ done
+ rm -rf "$tmpd"
  snapshot
  prev=0
  if [ -d /etc/didar/ssl ]; then rm -rf /etc/didar/ssl-prev; cp -a /etc/didar/ssl /etc/didar/ssl-prev; prev=1; fi
@@ -125,7 +242,11 @@ if [ "$MODE" = "manual" ]; then
  install -m 640 -o root -g www-data "$FULL" /etc/didar/ssl/fullchain.pem
  install -m 640 -o root -g www-data "$SRC/privkey.pem" /etc/didar/ssl/privkey.pem
  rm -f "$FULL"
- point_nginx /etc/didar/ssl/fullchain.pem /etc/didar/ssl/privkey.pem
+ if grep -Eq '^[[:space:]]*ssl_certificate[[:space:]]' "$SITE"; then
+  point_nginx /etc/didar/ssl/fullchain.pem /etc/didar/ssl/privkey.pem
+ else
+  write_https_conf /etc/didar/ssl/fullchain.pem /etc/didar/ssl/privkey.pem
+ fi
  if ! nginx -t >/dev/null 2>&1; then
   restore_site
   rm -rf /etc/didar/ssl
@@ -137,6 +258,7 @@ if [ "$MODE" = "manual" ]; then
  rm -f "$SITE.didar-bak"
  printf 'manual\n' > "$MODEFILE"
  chmod 644 "$MODEFILE"
+ ensure_turn_tls
  apply_turn /etc/didar/ssl/fullchain.pem /etc/didar/ssl/privkey.pem
  write_hook
  restart_web
@@ -164,6 +286,7 @@ if [ "$MODE" = "auto" ]; then
  rm -f "$SITE.didar-bak"
  printf 'auto\n' > "$MODEFILE"
  chmod 644 "$MODEFILE"
+ ensure_turn_tls
  apply_turn "$c" "$k"
  case "$c" in
   /etc/didar/ssl/*) ;;

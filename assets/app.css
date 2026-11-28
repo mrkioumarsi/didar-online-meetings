@@ -88,6 +88,8 @@ input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--pr);-we
 .sb{flex:1;min-height:0;display:flex;flex-direction:column}.pane{flex:1;min-height:0;display:flex;flex-direction:column}
 .cbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bd);background:var(--sf2)}
 #msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+html[dir=rtl] #msgs{direction:ltr}
+html[dir=rtl] #msgs .m{direction:rtl;text-align:right}
 .m{position:relative;background:#eef1f6;padding:7px 12px;border-radius:14px 14px 14px 4px;max-width:88%;word-break:break-word;align-self:flex-start;font-size:.9rem}.m b{display:block;font-size:.72rem;color:var(--pr);font-weight:600}.m.mine{align-self:flex-end;background:var(--pr-s);border-radius:14px 14px 4px 14px}
 .m .dl{position:absolute;left:-6px;top:-8px;width:22px;height:22px;border-radius:50%;border:0;background:#fff;color:var(--rd);box-shadow:0 1px 4px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;cursor:pointer}
 #cf{flex:none;display:flex;gap:8px;padding:10px;border-top:1px solid var(--bd)}#cf input{margin:0;border-radius:22px;background:var(--sf2)}#cf .btn{width:42px;padding:0;border-radius:50%;flex:none}

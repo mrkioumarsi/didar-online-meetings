@@ -22,16 +22,16 @@ The installer adds Nginx, MariaDB, PHP, Coturn, LiveKit, certbot, and ffmpeg. Ot
 Install on a server that has a public IP.
 
 ```bash
-git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --confirm-wipe
+git clone --depth 1 --branch v1.1.3 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --confirm-wipe
 ```
 
 Install on a server behind NAT. Forward the ports to this machine.
 
 ```bash
-git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --confirm-wipe
+git clone --depth 1 --branch v1.1.3 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --confirm-wipe
 ```
 
-The first line it prints must be `Didar 1.1.2 installer 20261122-ask`. If that line is missing, delete the `didar` folder and run the command again.
+The first line it prints must be `Didar 1.1.3 installer 20261129-ssl`. If that line is missing, delete the `didar` folder and run the command again.
 
 If a parameter below is left out, the installer asks for it before it installs any tool. On a terminal, Enter accepts the value in brackets.
 
@@ -48,7 +48,9 @@ If a parameter below is left out, the installer asks for it before it installs a
 
 Without a terminal, the command needs `--net`, `--domain`, `--email`, and `--confirm-wipe`. The language stays Persian, the username stays `admin`, and the admin password is created.
 
-`SUCCESS` prints the media mode, then the database password, then the admin username and password. Copy them before you close the terminal. The same values are in `/etc/didar/secrets.env` and `/etc/didar/admin.txt`. The MariaDB root password is not printed. Open `https://your-domain/` and sign in.
+`SUCCESS` prints the media mode, then the database password, then the admin username and password. Copy them before you close the terminal. The same values are in `/etc/didar/secrets.env` and `/etc/didar/admin.txt`. The MariaDB root password is not printed. Open the printed URL and sign in.
+
+If Let's Encrypt fails three times, the installer asks a question. `y` creates a self-signed certificate, marks it manual in Settings, and opens HTTPS. `n` starts every service without SSL, on HTTP, so a certificate can be added later in Settings.
 
 After that, the install scripts are removed from the website folder and from the extracted folder. What remains are the commands `didar-update`, `didar-reinstall`, and `didar-uninstall`.
 
@@ -74,13 +76,13 @@ These must be open on the public IP. In nat mode, forward them to the server.
 - 7881 TCP
 - UDP 49152–49999 and UDP 50000–60000
 
-Outbound HTTPS to Let's Encrypt must be open. If the certificate times out, wait and run the installer again.
+Outbound HTTPS to Let's Encrypt must be open. If the certificate still fails after three attempts, the installer asks whether to create a self-signed certificate or to start without SSL.
 
 Test a call from mobile data. A phone on the same Wi-Fi as the server often cannot open the public name.
 
 LiveKit is pinned to a real address, with `use_external_ip` off. In direct mode, Coturn uses the public card on both sides. In nat mode, it advertises the public IP and relays from the private card. «Force TURN» stays off unless you turn it on in Settings.
 
-Later, Settings can keep the automatic certificate or take a private key, public key, certificate, and bundle. Saving restarts the web server once. If you return to automatic and that certificate is missing, the manual certificate stays.
+Later, Settings can keep the automatic certificate, or take an unencrypted private key, the certificate, and a CA bundle. Leave the public key empty. Saving restarts the web server once. If you return to automatic and that certificate is missing, the manual certificate stays.
 
 ## Uninstall
 

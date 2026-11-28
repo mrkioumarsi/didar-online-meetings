@@ -680,6 +680,22 @@ function ssl_pem_ok($raw,$marks,$allowEmpty=false){
  foreach($marks as $m) if(str_contains($raw,'BEGIN '.$m)) return $raw;
  return null;
 }
+function ssl_host(){
+ $d=trim((string)setting('domain'));
+ $d=preg_replace('#^https?://#i','',$d);
+ $d=preg_replace('#[:/].*$#','',$d);
+ return $d;
+}
+function ssl_prefer_https(){
+ $h=ssl_host();
+ if($h==='') return;
+ q("REPLACE INTO settings VALUES('domain',?)",['https://'.$h]);
+ $lk=trim((string)setting('lk_url'));
+ if($lk===''||preg_match('#^wss?://#i',$lk)) q("REPLACE INTO settings VALUES('lk_url',?)",['wss://'.$h]);
+ $turn=trim((string)setting('turn_url'));
+ $bit='turns:'.$h.':5349?transport=tcp';
+ if($turn!==''&&!str_contains($turn,'turns:')) q("REPLACE INTO settings VALUES('turn_url',?)",[rtrim($turn,',').','.$bit]);
+}
 function ssl_apply(){
  @set_time_limit(60);
  if(!is_executable('/usr/local/sbin/didar-ssl')||!didar_fn('exec')) fail(t('ssl.perm'));
@@ -688,7 +704,7 @@ function ssl_apply(){
  try{
   if($mode==='manual'){
    $priv=ssl_pem_ok($_POST['priv']??'',['PRIVATE KEY','RSA PRIVATE KEY','EC PRIVATE KEY']);
-   $pub=ssl_pem_ok($_POST['pub']??'',['PUBLIC KEY','RSA PUBLIC KEY']);
+   $pub=ssl_pem_ok($_POST['pub']??'',['PUBLIC KEY','RSA PUBLIC KEY','CERTIFICATE'],true);
    $cert=ssl_pem_ok($_POST['cert']??'',['CERTIFICATE']);
    $bundle=ssl_pem_ok($_POST['bundle']??'',['CERTIFICATE'],true);
    if($priv===null||$pub===null||$cert===null||$bundle===null) fail(t('ssl.bad'));
@@ -711,6 +727,7 @@ function ssl_apply(){
   fail(t('ssl.bad'));
  }
  q("REPLACE INTO settings VALUES('ssl_mode',?)",[$mode]);
+ ssl_prefer_https();
  out(['ok'=>1,'mode'=>$mode]);
 }
 function ssl_renew(){

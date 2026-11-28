@@ -74,7 +74,7 @@ PY
 }
 
 run_certbot() {
-    local n=1 max=5 wait=20
+    local n=1 max=3 wait=20
     umask 022
     while [ "$n" -le "$max" ]; do
         echo "Let's Encrypt attempt ${n}/${max}..."
@@ -146,7 +146,7 @@ APPDIR="$(realpath "$APPDIR")"
 [ -f "$APPDIR/install/didar-ssl.sh" ] || fail "didar-ssl.sh not found"
 ORIG="$APPDIR"
 
-echo "Didar 1.1.2 installer 20261122-ask"
+echo "Didar 1.1.3 installer 20261129-ssl"
 
 [[ "$APPDIR" != *" "* ]] || fail "Application path cannot contain spaces"
 
@@ -1171,6 +1171,9 @@ echo "Checking Let's Encrypt API..."
 if ! curl -4 -fsS -m 90 -o /dev/null "https://acme-v02.api.letsencrypt.org/directory"; then
     echo "Let's Encrypt API is slow or unreachable on IPv4. certbot will retry."
 fi
+SSL_MODE=auto
+CERT_FILE="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+KEY_FILE="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
 if ! run_certbot certonly \
     --webroot \
     -w /var/www/certbot \
@@ -1179,11 +1182,57 @@ if ! run_certbot certonly \
     --agree-tos \
     --non-interactive \
     --keep-until-expiring; then
-    fail "Let's Encrypt timed out on acme-v02.api.letsencrypt.org:443. Open outbound HTTPS to Let's Encrypt, wait, then re-run the installer."
+    echo
+    echo "Let's Encrypt did not issue a certificate after 3 attempts."
+    if [ ! -t 0 ]; then
+        fail "No terminal is available to choose a self-signed certificate or HTTP. Re-run the installer in a terminal."
+    fi
+    SSL_CHOICE=""
+    while [ "$SSL_CHOICE" != "y" ] && [ "$SSL_CHOICE" != "n" ]; do
+        if ! read -r -p "Create a self-signed certificate and open the site? A real certificate can be installed later in Settings. Type y or n: " SSL_CHOICE; then
+            fail "No answer. Installation stopped."
+        fi
+        SSL_CHOICE="$(printf '%s' "$SSL_CHOICE" | tr '[:upper:]' '[:lower:]')"
+    done
+    if [ "$SSL_CHOICE" = "y" ]; then
+        SSL_MODE=manual
+        echo "Continuing with a self-signed certificate."
+        ssdir="$(mktemp -d)"
+        cat > "$ssdir/req.cnf" <<EOF
+[req]
+distinguished_name=dn
+x509_extensions=v3
+prompt=no
+[dn]
+CN=${DOMAIN}
+[v3]
+subjectAltName=DNS:${DOMAIN}
+basicConstraints=CA:FALSE
+keyUsage=digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+EOF
+        openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
+            -keyout "$ssdir/privkey.pem" \
+            -out "$ssdir/fullchain.pem" \
+            -config "$ssdir/req.cnf"
+        install -d -o root -g www-data -m 750 /etc/didar/ssl
+        install -m 640 -o root -g www-data "$ssdir/fullchain.pem" /etc/didar/ssl/fullchain.pem
+        install -m 640 -o root -g www-data "$ssdir/privkey.pem" /etc/didar/ssl/privkey.pem
+        rm -rf "$ssdir"
+        CERT_FILE="/etc/didar/ssl/fullchain.pem"
+        KEY_FILE="/etc/didar/ssl/privkey.pem"
+    else
+        SSL_MODE=off
+        echo "Continuing without SSL."
+    fi
 fi
 
-[ -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ] || fail "SSL certificate was not created"
-[ -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ] || fail "SSL private key was not created"
+printf '%s\n' "$SSL_MODE" > /etc/didar/ssl-mode
+chmod 644 /etc/didar/ssl-mode
+
+if [ "$SSL_MODE" != "off" ]; then
+[ -s "$CERT_FILE" ] || fail "SSL certificate was not created"
+[ -s "$KEY_FILE" ] || fail "SSL private key was not created"
 
 NGXVER="$(nginx -v 2>&1 | awk -F/ '{print $2; exit}')"
 HTTP2_LINE="    listen 443 ssl http2;"
@@ -1214,8 +1263,8 @@ ${HTTP2_LINE}
 
     server_tokens off;
 
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate ${CERT_FILE};
+    ssl_certificate_key ${KEY_FILE};
 
     root ${APPDIR};
     index index.php;
@@ -1277,9 +1326,8 @@ EOF
 nginx -t
 systemctl reload nginx
 
-# Install the certificate for Coturn only after SSL issuance.
-cp "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" /etc/coturn/certs/fullchain.pem
-cp "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" /etc/coturn/certs/privkey.pem
+cp "$CERT_FILE" /etc/coturn/certs/fullchain.pem
+cp "$KEY_FILE" /etc/coturn/certs/privkey.pem
 
 chown turnserver:turnserver \
     /etc/coturn/certs/fullchain.pem \
@@ -1288,6 +1336,22 @@ chown turnserver:turnserver \
 chmod 640 \
     /etc/coturn/certs/fullchain.pem \
     /etc/coturn/certs/privkey.pem
+fi
+
+if [ "$SSL_MODE" = "off" ]; then
+    dbroot didar -e "REPLACE INTO settings(k,v) VALUES('ssl_mode','off'),('domain','http://${DOMAIN}'),('lk_url','ws://${DOMAIN}'),('turn_url','turn:${DOMAIN}:3478,turn:${DOMAIN}:3478?transport=tcp')"
+    sed -i "s#https://${DOMAIN}#http://${DOMAIN}#g; s#wss://${DOMAIN}#ws://${DOMAIN}#g" "$APPDIR/config.local.php"
+    sed -i -E '/^(tls-listening-port|cert|pkey)=/d' /etc/turnserver.conf
+    SITE_URL="http://${DOMAIN}/"
+    CHECK_PORT=80
+else
+    dbroot didar -e "REPLACE INTO settings(k,v) VALUES('ssl_mode','${SSL_MODE}')"
+    SITE_URL="https://${DOMAIN}/"
+    CHECK_PORT=443
+fi
+
+nginx -t
+systemctl reload nginx
 
 systemctl enable coturn
 systemctl restart coturn
@@ -1303,8 +1367,8 @@ HOME_OK=0
 
 if curl -kfsSL \
     --max-time 25 \
-    --resolve "${DOMAIN}:443:127.0.0.1" \
-    "https://${DOMAIN}/" \
+    --resolve "${DOMAIN}:${CHECK_PORT}:127.0.0.1" \
+    "${SITE_URL}" \
     -o /tmp/didar-check.html; then
 
     if grep -q 'id="login"' /tmp/didar-check.html; then
@@ -1319,7 +1383,7 @@ echo "============================================================"
 echo "DIDAR INSTALLATION RESULT"
 echo "============================================================"
 
-echo "URL: https://${DOMAIN}/"
+echo "URL: ${SITE_URL}"
 echo "Application: $APPDIR"
 echo "Database: didar"
 echo "Database user: didar"
@@ -1344,14 +1408,19 @@ ufw status
 
 if [ "$HOME_OK" -ne 1 ]; then
     echo
-    echo "WARNING: HTTPS homepage verification failed."
+    echo "WARNING: Homepage verification failed."
     echo "Check DNS, NAT port forwarding, Nginx, PHP-FPM and application logs."
     exit 1
 fi
 
 echo
 echo "SUCCESS: Didar is installed."
-echo "URL: https://${DOMAIN}/"
+echo "URL: ${SITE_URL}"
+case "$SSL_MODE" in
+    manual) echo "Certificate: self-signed. Install a real certificate later in Settings." ;;
+    off) echo "Certificate: none. The site is HTTP. Install a certificate later in Settings." ;;
+    *) echo "Certificate: Let's Encrypt." ;;
+esac
 echo "Media mode: ${MEDIA_MODE}"
 echo "Database host: localhost"
 echo "Database name: didar"

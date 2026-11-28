@@ -22,16 +22,16 @@
 نصب روی سروری که IP عمومی دارد.
 
 ```bash
-git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --confirm-wipe
+git clone --depth 1 --branch v1.1.3 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net direct --confirm-wipe
 ```
 
 نصب روی سروری که پشت NAT است. پورت‌ها را به این ماشین فوروارد کنید.
 
 ```bash
-git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --confirm-wipe
+git clone --depth 1 --branch v1.1.3 https://github.com/mrkioumarsi/didar-online-meetings.git didar && sudo bash didar/install/didar-install.sh --net nat --confirm-wipe
 ```
 
-اولین خطی که چاپ می‌کند باید `Didar 1.1.2 installer 20261122-ask` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
+اولین خطی که چاپ می‌کند باید `Didar 1.1.3 installer 20261129-ssl` باشد. اگر نیست، پوشهٔ `didar` را پاک کنید و دستور را دوباره بزنید.
 
 اگر پارامتری از فهرست زیر در دستور نباشد، نصب‌کننده قبل از نصب هر ابزاری همان را می‌پرسد. در ترمینال، Enter مقدار داخل کروشه را می‌پذیرد.
 
@@ -48,7 +48,9 @@ git clone --depth 1 --branch v1.1.2 https://github.com/mrkioumarsi/didar-online-
 
 بدون ترمینال، دستور به `--net` و `--domain` و `--email` و `--confirm-wipe` نیاز دارد. زبان فارسی می‌ماند، نام کاربری `admin` می‌ماند، و رمز مدیر ساخته می‌شود.
 
-`SUCCESS` اول حالت مدیا را چاپ می‌کند، بعد رمز پایگاه داده، بعد نام کاربری و رمز مدیر. قبل از بستن ترمینال آن‌ها را بردارید. همان مقدارها در `/etc/didar/secrets.env` و `/etc/didar/admin.txt` است. رمز root ماریا چاپ نمی‌شود. `https://your-domain/` را باز کنید و وارد شوید.
+`SUCCESS` اول حالت مدیا را چاپ می‌کند، بعد رمز پایگاه داده، بعد نام کاربری و رمز مدیر. قبل از بستن ترمینال آن‌ها را بردارید. همان مقدارها در `/etc/didar/secrets.env` و `/etc/didar/admin.txt` است. رمز root ماریا چاپ نمی‌شود. نشانی چاپ‌شده را باز کنید و وارد شوید.
+
+اگر Let's Encrypt سه بار گواهی ندهد، نصب‌کننده یک سؤال می‌پرسد. `y` یک گواهی خودامضا می‌سازد، آن را در تنظیمات روی حالت دستی می‌گذارد و سایت را با HTTPS باز می‌کند. `n` همهٔ سرویس‌ها را بدون SSL و روی HTTP راه می‌اندازد تا بعداً از تنظیمات گواهی گذاشته شود.
 
 بعد از نصب موفق، فایل‌های نصب از پوشهٔ سایت و از پوشهٔ استخراج پاک می‌شوند. دستورهای `didar-update` و `didar-reinstall` و `didar-uninstall` می‌مانند.
 
@@ -74,13 +76,13 @@ sudo didar-reinstall
 - ۷۸۸۱ روی TCP
 - UDP از ۴۹۱۵۲ تا ۴۹۹۹۹ و از ۵۰۰۰۰ تا ۶۰۰۰۰
 
-خروجی HTTPS به Let's Encrypt باید باز باشد. اگر گواهی زمانش تمام شد، کمی صبر کنید و نصب‌کننده را دوباره اجرا کنید.
+خروجی HTTPS به Let's Encrypt باید باز باشد. اگر گواهی بعد از سه تلاش هنوز گرفته نشود، نصب‌کننده می‌پرسد گواهی خودامضا ساخته شود یا بدون SSL ادامه داده شود.
 
 تماس را از اینترنت موبایل امتحان کنید. گوشی روی همان وای‌فای سرور اغلب نام عمومی را باز نمی‌کند.
 
 LiveKit به یک آدرس واقعی سنجاق شده و `use_external_ip` خاموش است. در direct هر دو طرف Coturn کارت عمومی است. در nat آدرس عمومی اعلام می‌شود و رله از کارت خصوصی است. «فقط از طریق TURN» خاموش می‌ماند، مگر خودتان در تنظیمات روشن کنید.
 
-بعداً در تنظیمات می‌شود گواهی خودکار ماند یا کلید خصوصی، کلید عمومی، گواهی و باندل را گذاشت. ذخیره، وب‌سرور را یک بار ری‌استارت می‌کند. اگر به حالت خودکار برگردید و آن گواهی نباشد، گواهی دستی سر جایش می‌ماند.
+بعداً در تنظیمات می‌شود گواهی خودکار ماند، یا کلید خصوصیِ بدون رمز، خود گواهی و باندل CA را گذاشت. کلید عمومی را خالی بگذارید. ذخیره، وب‌سرور را یک بار ری‌استارت می‌کند. اگر به حالت خودکار برگردید و آن گواهی نباشد، گواهی دستی سر جایش می‌ماند.
 
 ## حذف
 

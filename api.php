@@ -180,7 +180,7 @@ try{
   $u=user();
   $x=['user'=>$u,'brand'=>setting('brand'),'domain'=>setting('domain'),'cal'=>app_cal(),'tz'=>app_tz_name(),'lang'=>html_lang(),'langs'=>[],'pass_min'=>pass_min(),'pass_policy'=>pass_policy(),'mode'=>link_mode()];
   foreach(lang_list() as $id=>$m)$x['langs'][]=['id'=>$id,'name'=>$m['name']];
-  if($u&&$u['role']==='admin'){foreach(['stun','turn_url','turn_user','turn_pass','turn_secret','ice_relay','quality','lk_url','lk_key','lk_secret','calendar','timezone','default_lang'] as $k)$x[$k]=setting($k);$x['ssl_mode']=setting('ssl_mode')==='manual'?'manual':'auto';}
+  if($u&&$u['role']==='admin'){foreach(['stun','turn_url','turn_user','turn_pass','turn_secret','ice_relay','quality','lk_url','lk_key','lk_secret','calendar','timezone','default_lang'] as $k)$x[$k]=setting($k);$x['ssl_mode']=(setting('ssl_mode')==='manual'||setting('ssl_mode')==='off')?'manual':'auto';}
   out($x);
  case 'ice':need_admin();out(['ice'=>ice_servers()]);
  case 'node':

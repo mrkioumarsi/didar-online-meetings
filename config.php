@@ -52,7 +52,7 @@ function db(){
 function q($s,$a=[]){$t=db()->prepare($s);$t->execute($a);return $t;}
 function setting($k){try{return q("SELECT v FROM settings WHERE k=?",[$k])->fetchColumn()?:'';}catch(Exception $e){return '';}}
 function is_private($ip){return $ip==='::1'||!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE);}
-if(!$https&&!is_private($_SERVER['SERVER_ADDR']??'')&&!is_private($_SERVER['REMOTE_ADDR']??'')&&PHP_SAPI!=='cli'){header('Location: https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);exit;}
+if(!$https&&setting('ssl_mode')!=='off'&&!is_private($_SERVER['SERVER_ADDR']??'')&&!is_private($_SERVER['REMOTE_ADDR']??'')&&PHP_SAPI!=='cli'){header('Location: https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);exit;}
 function h($s){return htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8');}
 function base(){global $https;$d=trim(setting('domain'));if($d)return rtrim(preg_match('~^https?://~',$d)?$d:'https://'.$d,'/');return ($https?'https':'http').'://'.$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['SCRIPT_NAME']),'/');}
 function asset($f){return $f.'?v='.@filemtime(__DIR__.'/'.$f);}
